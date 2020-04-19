@@ -12,7 +12,7 @@ from skimage import color
 from IPython import embed
 from . import pretrained_networks as pn
 
-import lpips as util
+import stylegan2.lpips as util
 
 def spatial_average(in_tens, keepdim=True):
     return in_tens.mean([2,3],keepdim=keepdim)

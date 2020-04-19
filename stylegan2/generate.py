@@ -2,7 +2,7 @@ import argparse
 
 import torch
 from torchvision import utils
-from model import Generator
+from stylegan2.model import Generator
 from tqdm import tqdm
 def generate(args, g_ema, device, mean_latent):
 
