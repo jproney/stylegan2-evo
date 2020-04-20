@@ -38,7 +38,6 @@ class Evolver:
 
     def update(self):
         with torch.no_grad():
-            self.generate()
             self.calc_error()
             tot_err = np.sum(self.losses)
             child_genomes = torch.zeros([self.npop, LATENT_DIM])
@@ -63,6 +62,8 @@ class Evolver:
                         child_genomes[i, xpoints[j]:xpoints[j+1]] = w2[xpoints[j]:xpoints[j+1]]
                         par1 = True
             self.genomes = child_genomes
+            self.generate()
+
 
     def display(self, ndisp):
         with torch.no_grad():
@@ -77,8 +78,12 @@ class Evolver:
             plt.show()
 
 
-
-
+if __name__ == "main":
+    n_iter = 100
+    evo = Evolver(128, [])
+    for i in range(n_iter):
+        evo.update()
+        evo.display()
 
 
 
