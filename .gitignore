@@ -137,3 +137,6 @@ wandb/
 
 #Pycharm
 *.idea
+
+#images
+*.png
