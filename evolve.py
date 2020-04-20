@@ -4,6 +4,8 @@ from stylegan2 import ppl
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+from PIL import Image
+import torchvision
 import math
 
 LATENT_DIM = 512
@@ -80,7 +82,10 @@ class Evolver:
 
 if __name__ == "main":
     n_iter = 100
-    evo = Evolver(128, [])
+    img = Image.open("target.png")
+    totens = torchvision.transforms.ToTensor()
+    tgt = totens(img)
+    evo = Evolver(128, tgt)
     for i in range(n_iter):
         evo.update()
         evo.display()
