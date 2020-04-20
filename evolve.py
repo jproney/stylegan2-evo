@@ -4,6 +4,7 @@ from stylegan2 import ppl
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import math
 
 LATENT_DIM = 512
 IMG_DIM = 1024
@@ -61,10 +62,20 @@ class Evolver:
                     else:
                         child_genomes[i, xpoints[j]:xpoints[j+1]] = w2[xpoints[j]:xpoints[j+1]]
                         par1 = True
+            self.genomes = child_genomes
 
-    def display(self):
+    def display(self, ndisp):
         with torch.no_grad():
-            pass
+            dim = math.ceil(math.sqrt(ndisp))
+            fig, axs = plt.subplots(dim)
+            disp_ind = random.sample(range(self.npop), ndisp)
+            for i in range(ndisp):
+                row = i // dim
+                img = self.genomes[disp_ind[i], :].cpu().numpy().squeeze()
+                img = np.moveaxis(img, [0, 1, 2], [2, 0, 1])
+                axs[row][i - row*dim].imshow(img)
+            plt.show()
+
 
 
 
