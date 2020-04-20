@@ -26,17 +26,17 @@ class Evolver:
             sample = torch.randn(npop, LATENT_DIM, device=device)
             trunc_target = self.generator.mean_latent(4096)
             # matrix of genomes
-            self.genomes, _ = trunc_target + trunc*(self.generator.get_latent(sample) - trunc_target)
+            self.genomes = trunc_target + trunc*(self.generator.get_latent(sample) - trunc_target)
             self.losses = None
             self.faces = None
             self.generate()
 
     def generate(self):
-        self.faces = self.generator([self.genomes], input_is_latent=True, truncation=1)
+        self.faces, _ = self.generator([self.genomes], input_is_latent=True, truncation=1)
 
     def calc_error(self):
         mse = torch.nn.MSELoss()
-        self.losses = torch.tensor([mse(self.faces[i, :, :], self.target) for i in range(self.npop)])
+        self.losses = torch.tensor([mse(self.faces[i, :, :, :], self.target) for i in range(self.npop)])
 
     def update(self):
         with torch.no_grad():
@@ -70,13 +70,13 @@ class Evolver:
     def display(self, ndisp):
         with torch.no_grad():
             dim = math.ceil(math.sqrt(ndisp))
-            fig, axs = plt.subplots(dim)
+            fig, axs = plt.subplots(dim, dim)
             disp_ind = random.sample(range(self.npop), ndisp)
             for i in range(ndisp):
                 row = i // dim
-                img = self.genomes[disp_ind[i], :].cpu().numpy().squeeze()
-                img = np.moveaxis(img, [0, 1, 2], [2, 0, 1])
-                axs[row][i - row*dim].imshow(img)
+                im = self.faces[disp_ind[i], :, :, :].cpu().numpy().squeeze()
+                im = np.moveaxis(im, [0, 1, 2], [2, 0, 1])
+                axs[row, i - row*dim].imshow(im*.5 + .5)
             plt.show()
 
 
@@ -84,11 +84,11 @@ if __name__ == "main":
     n_iter = 100
     img = Image.open("target.png")
     totens = torchvision.transforms.ToTensor()
-    tgt = totens(img)
-    evo = Evolver(128, tgt)
-    for i in range(n_iter):
-        evo.update()
-        evo.display()
+    tgt = totens(img).cuda()
+    evo = Evolver(4, tgt)
+    # for i in range(n_iter):
+    #     evo.update()
+    #     evo.display()
 
 
 
