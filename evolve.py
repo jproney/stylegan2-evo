@@ -13,7 +13,7 @@ IMG_DIM = 1024
 
 
 class Evolver:
-    def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=3, sigma=.05, device="cuda", trunc=.6):
+    def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=5.0, sigma=.05, device="cuda", trunc=.6):
         with torch.no_grad():
             self.device = device
             self.npop = npop
@@ -27,7 +27,7 @@ class Evolver:
             trunc_target = self.generator.mean_latent(4096)
             # matrix of genomes
             self.genomes = trunc_target + trunc*(self.generator.get_latent(sample) - trunc_target)
-            self.losses = None
+            self.fitness = None
             self.faces = None
             self.generate()
 
@@ -36,33 +36,32 @@ class Evolver:
 
     def calc_error(self):
         mse = torch.nn.MSELoss()
-        self.losses = torch.tensor([mse(self.faces[i, :, :, :], self.target) for i in range(self.npop)])
+        self.fitness = torch.exp(torch.tensor([-mse(self.faces[i, :, :, :], self.target) for i in range(self.npop)]))
 
     def update(self):
         with torch.no_grad():
             self.calc_error()
-            tot_err = np.sum(self.losses)
-            child_genomes = torch.zeros([self.npop, LATENT_DIM])
-            par1 = torch.multinomial(self.losses/tot_err, self.npop)
-            par2 = torch.multinomial(self.losses/tot_err, self.npop)
-            noise1 = torch.randn(self.npop, LATENT_DIM) * self.sigma
-            noise2 = torch.randn(self.npop, LATENT_DIM) * self.sigma
+            tot_fit = torch.sum(self.fitness)
+            child_genomes = torch.zeros([self.npop, LATENT_DIM], device=self.device)
+            par1 = torch.multinomial(self.fitness/tot_fit, self.npop)
+            par2 = torch.multinomial(self.fitness/tot_fit, self.npop)
+            noise1 = torch.randn(self.npop, LATENT_DIM, device=self.device) * self.sigma
+            noise2 = torch.randn(self.npop, LATENT_DIM, device=self.device) * self.sigma
             for i in range(self.npop):
                 # mutate the parent genomes
                 w1 = self.genomes[par1[i], :] + noise1[par1[i], :]
                 w2 = self.genomes[par2[i], :] + noise2[par2[i], :]
 
                 # cross over
-                k = torch.poisson(torch.tensor([self.lamb], device=self.device))
-                xpoints = [0] + random.sample(range(1, LATENT_DIM-1), k) + [LATENT_DIM]
-                par1 = True
-                for j in xpoints[:-1]:
-                    if par1:
+                xpoints = [0] + sorted(random.sample(range(1, LATENT_DIM), 3)) + [LATENT_DIM]
+                currpar = True
+                for j in range(len(xpoints) - 1):
+                    if currpar:
                         child_genomes[i, xpoints[j]:xpoints[j+1]] = w1[xpoints[j]:xpoints[j+1]]
-                        par1 = False
+                        currpar = False
                     else:
                         child_genomes[i, xpoints[j]:xpoints[j+1]] = w2[xpoints[j]:xpoints[j+1]]
-                        par1 = True
+                        currpar = True
             self.genomes = child_genomes
             self.generate()
 
@@ -80,15 +79,16 @@ class Evolver:
             plt.show()
 
 
-if __name__ == "main":
-    n_iter = 100
-    img = Image.open("target.png")
-    totens = torchvision.transforms.ToTensor()
-    tgt = totens(img).cuda()
-    evo = Evolver(4, tgt)
-    # for i in range(n_iter):
-    #     evo.update()
-    #     evo.display()
+if __name__ == "__main__":
+    with torch.no_grad():
+        n_iter = 100
+        img = Image.open("target.png")
+        totens = torchvision.transforms.ToTensor()
+        tgt = totens(img).cuda()
+        evo = Evolver(6, tgt)
+        # for i in range(n_iter):
+        #     evo.update()
+        #     evo.display()
 
 
 
