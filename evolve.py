@@ -11,6 +11,7 @@ import math
 LATENT_DIM = 512
 IMG_DIM = 1024
 CUDA_BATCH_SIZE = 6  # Deep Learning on a laptop reacs only
+N_FLOW = 16
 N_ELITE = 8
 
 class Evolver:
@@ -26,9 +27,10 @@ class Evolver:
             checkpoint = torch.load(cpkt)
             self.generator.load_state_dict(checkpoint['g_ema'])
             sample = torch.randn(npop, LATENT_DIM, device=device)
-            trunc_target = self.generator.mean_latent(4096)
+            self.trunc_target = self.generator.mean_latent(4096)
             # matrix of genomes
-            self.genomes = trunc_target + trunc*(self.generator.get_latent(sample) - trunc_target)
+            self.trunc = trunc
+            self.genomes = self.trunc_target + self.trunc*(self.generator.get_latent(sample) - self.trunc_target)
             self.fitness = None
             self.ranks = torch.zeros([npop], device="cpu")
             self.faces = torch.zeros([npop, 3, IMG_DIM, IMG_DIM], device="cpu")
@@ -51,31 +53,31 @@ class Evolver:
             self.fitness.sort(key=lambda elem: elem[1])
             for i in range(self.npop):
                 x = self.fitness[i]
-                self.ranks[x[0]] = 1/(i+1) if i < 100 else 0  # just drop the 28 weakest
+                self.ranks[x[0]] = 1/(i+1)
 
     def update(self):
         with torch.no_grad():
             self.calc_error()
             tot_fit = torch.sum(self.ranks)
             child_genomes = torch.zeros([self.npop, LATENT_DIM], device=self.device)
-            par1 = torch.multinomial(self.ranks/tot_fit, self.npop, replacement=True)
-            par2 = torch.multinomial(self.ranks/tot_fit, self.npop, replacement=True)
-            noise1 = torch.randn(self.npop, LATENT_DIM, device=self.device) * self.sigma
-            noise2 = torch.randn(self.npop, LATENT_DIM, device=self.device) * self.sigma
+            par1 = torch.multinomial(self.ranks/tot_fit, self.npop - N_FLOW, replacement=True)
+            par2 = torch.multinomial(self.ranks/tot_fit, self.npop - N_FLOW, replacement=True)
+            noise1 = torch.randn(self.npop - N_FLOW, LATENT_DIM, device=self.device) * self.sigma
+            noise2 = torch.randn(self.npop - N_FLOW, LATENT_DIM, device=self.device) * self.sigma
             noise1 *= (abs(noise1) > 2*self.sigma)
             noise2 *= (abs(noise2) > 2*self.sigma)
-            for i in range(self.npop):
-                if i < N_ELITE:
-                    child_genomes[i, :] = self.genomes[self.fitness[i][0], :] # Elitist selection
-                else:
-                    # mutate the parent genomes
-                    w1 = self.genomes[par1[i], :] + noise1[par1[i], :]
-                    w2 = self.genomes[par2[i], :] + noise2[par2[i], :]
+            sample = torch.randn(N_FLOW, LATENT_DIM, device=self.device)
+            child_genomes[:N_FLOW, :] = self.trunc_target + self.trunc*(self.generator.get_latent(sample) - self.trunc_target)
+            for i in range(N_FLOW, self.npop):
+                # mutate the parent genomes
+                ind = i - N_FLOW
+                w1 = self.genomes[par1[ind], :] + noise1[ind, :]
+                w2 = self.genomes[par2[ind], :] + noise2[ind, :]
 
-                    # cross over
-                    xpoint = random.randint(1, LATENT_DIM)
-                    child_genomes[i, 0:xpoint] = w1[0:xpoint]
-                    child_genomes[i, xpoint:] = w2[xpoint:]
+                # cross over
+                xpoint = random.randint(1, LATENT_DIM)
+                child_genomes[i, 0:xpoint] = w1[0:xpoint]
+                child_genomes[i, xpoint:] = w2[xpoint:]
             self.genomes = child_genomes
             self.generate()
 
