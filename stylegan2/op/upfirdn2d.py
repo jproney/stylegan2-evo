@@ -115,7 +115,7 @@ class UpFirDn2d(Function):
 
         ctx.g_pad = (g_pad_x0, g_pad_x1, g_pad_y0, g_pad_y1)
 
-        out = upfirdn2d_op.upfirdn2d(
+        out = upfirdn2d_native(
             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
         )
         # out = out.view(major, out_h, out_w, minor)
@@ -142,12 +142,12 @@ class UpFirDn2d(Function):
         return grad_input, None, None, None, None
 
 
-def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0), native=True):
-    if native:
-        return upfirdn2d_native(input, kernel, up, up, down, down, pad[0], pad[1], pad[0], pad[1])
-    return UpFirDn2d.apply(
+def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0)):
+    out = UpFirDn2d.apply(
         input, kernel, (up, up), (down, down), (pad[0], pad[1], pad[0], pad[1])
     )
+
+    return out
 
 
 def upfirdn2d_native(
