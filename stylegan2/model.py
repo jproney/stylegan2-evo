@@ -151,7 +151,7 @@ class EqualLinear(nn.Module):
     def forward(self, input):
         if self.activation:
             out = F.linear(input, self.weight * self.scale)
-            out = fused_leaky_relu(out, self.bias * self.lr_mul, method="cpu")
+            out = fused_leaky_relu(out, self.bias * self.lr_mul, method="cuda")
 
         else:
             out = F.linear(
@@ -330,7 +330,7 @@ class StyledConv(nn.Module):
         self.noise = NoiseInjection()
         # self.bias = nn.Parameter(torch.zeros(1, out_channel, 1, 1))
         # self.activate = ScaledLeakyReLU(0.2)
-        self.activate = FusedLeakyReLU(out_channel, method="cpu")
+        self.activate = FusedLeakyReLU(out_channel, method="cuda")
 
     def forward(self, input, style, noise=None):
         out = self.conv(input, style)

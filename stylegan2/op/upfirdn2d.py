@@ -7,13 +7,13 @@ import torch.nn.functional as F
 
 
 module_path = os.path.dirname(__file__)
-# upfirdn2d_op = load(
-#     'upfirdn2d',
-#     sources=[
-#         os.path.join(module_path, 'upfirdn2d.cpp'),
-#         os.path.join(module_path, 'upfirdn2d_kernel.cu'),
-#     ],
-# )
+upfirdn2d_op = load(
+    'upfirdn2d',
+    sources=[
+        os.path.join(module_path, 'upfirdn2d.cpp'),
+        os.path.join(module_path, 'upfirdn2d_kernel.cu'),
+    ],
+)
 
 
 class UpFirDn2dBackward(Function):
@@ -115,7 +115,12 @@ class UpFirDn2d(Function):
 
         ctx.g_pad = (g_pad_x0, g_pad_x1, g_pad_y0, g_pad_y1)
 
-        out = upfirdn2d_native(
+        # Uncomment for CPU version:
+        # out = upfirdn2d_native(
+        #     input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
+        # )
+
+        out = upfirdn2d_op.upfirdn2d(
             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
         )
         # out = out.view(major, out_h, out_w, minor)
