@@ -53,7 +53,7 @@ class Evolver:
                 w2 = self.genomes[par2[i], :] + noise2[par2[i], :]
 
                 # cross over
-                xpoints = [0] + sorted(random.sample(range(1, LATENT_DIM), 3)) + [LATENT_DIM]
+                xpoints = [0] + sorted(random.sample(range(1, LATENT_DIM), 2)) + [LATENT_DIM]
                 currpar = True
                 for j in range(len(xpoints) - 1):
                     if currpar:
@@ -82,7 +82,7 @@ class Evolver:
 if __name__ == "__main__":
     with torch.no_grad():
         n_iter = 100
-        img = Image.open("target.png")
+        img = Image.open("target2.png")
         totens = torchvision.transforms.ToTensor()
         tgt = totens(img).cuda()
         evo = Evolver(6, tgt)

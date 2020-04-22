@@ -7,7 +7,7 @@ import numpy as np
 # Test out style mixing, interpolation
 
 # Load the model
-device = "cuda"
+device = "cpu"
 g_ema = Generator(1024, 512, 8, channel_multiplier=2).to(device)
 checkpoint = torch.load("stylegan2/stylegan2-ffhq-config-f.pt")
 g_ema.load_state_dict(checkpoint['g_ema'])

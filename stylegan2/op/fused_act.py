@@ -4,6 +4,7 @@ import torch
 from torch import nn
 from torch.autograd import Function
 from torch.utils.cpp_extension import load
+import torch.nn.functional as F
 
 
 module_path = os.path.dirname(__file__)
@@ -71,16 +72,21 @@ class FusedLeakyReLUFunction(Function):
 
 
 class FusedLeakyReLU(nn.Module):
-    def __init__(self, channel, negative_slope=0.2, scale=2 ** 0.5):
+    def __init__(self, channel, negative_slope=0.2, scale=2 ** 0.5, method="cuda"):
         super().__init__()
 
         self.bias = nn.Parameter(torch.zeros(channel))
         self.negative_slope = negative_slope
         self.scale = scale
+        self.method = method
 
     def forward(self, input):
-        return fused_leaky_relu(input, self.bias, self.negative_slope, self.scale)
+        return fused_leaky_relu(input, self.bias, self.negative_slope, self.scale, self.method)
 
 
-def fused_leaky_relu(input, bias, negative_slope=0.2, scale=2 ** 0.5):
-    return FusedLeakyReLUFunction.apply(input, bias, negative_slope, scale)
+def fused_leaky_relu(input, bias, negative_slope=0.2, scale=2 ** 0.5, method="cuda", axis=1):
+    if method == "cuda":
+        return FusedLeakyReLUFunction.apply(input, bias, negative_slope, scale)
+    bias = bias.view([-1 if i == axis else 1 for i in range(len(input.shape))])
+    return F.leaky_relu(input + bias, negative_slope) * scale  # slow cpu version
+
