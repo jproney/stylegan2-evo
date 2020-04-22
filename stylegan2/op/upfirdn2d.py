@@ -3,6 +3,7 @@ import os
 import torch
 from torch.autograd import Function
 from torch.utils.cpp_extension import load
+import torch.nn.functional as F
 
 
 module_path = os.path.dirname(__file__)
@@ -141,12 +142,12 @@ class UpFirDn2d(Function):
         return grad_input, None, None, None, None
 
 
-def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0)):
-    out = UpFirDn2d.apply(
+def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0), native=True):
+    if native:
+        return upfirdn2d_native(input, kernel, up, up, down, down, pad[0], pad[1], pad[0], pad[1])
+    return UpFirDn2d.apply(
         input, kernel, (up, up), (down, down), (pad[0], pad[1], pad[0], pad[1])
     )
-
-    return out
 
 
 def upfirdn2d_native(
