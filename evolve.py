@@ -13,7 +13,7 @@ IMG_DIM = 1024
 
 
 class Evolver:
-    def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=5.0, sigma=.05, device="cuda", trunc=.6):
+    def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=5.0, sigma=.05, device="cpu", trunc=.6):
         with torch.no_grad():
             self.device = device
             self.npop = npop
@@ -21,6 +21,7 @@ class Evolver:
             self.lamb = lamb
             self.sigma = sigma
             self.generator = Generator(IMG_DIM, LATENT_DIM, 8, channel_multiplier=2).to(self.device)
+            self.generator.eval()
             checkpoint = torch.load(cpkt)
             self.generator.load_state_dict(checkpoint['g_ema'])
             sample = torch.randn(npop, LATENT_DIM, device=device)
@@ -32,11 +33,13 @@ class Evolver:
             self.generate()
 
     def generate(self):
-        self.faces, _ = self.generator([self.genomes], input_is_latent=True, truncation=1)
+        with torch.no_grad():
+            self.faces, _ = self.generator([self.genomes], input_is_latent=True, truncation=1)
 
     def calc_error(self):
-        mse = torch.nn.MSELoss()
-        self.fitness = torch.exp(torch.tensor([-mse(self.faces[i, :, :, :], self.target) for i in range(self.npop)]))
+        with torch.no_grad():
+            mse = torch.nn.MSELoss()
+            self.fitness = torch.exp(torch.tensor([-mse(self.faces[i, :, :, :], self.target) for i in range(self.npop)]))
 
     def update(self):
         with torch.no_grad():
@@ -84,7 +87,7 @@ if __name__ == "__main__":
         n_iter = 100
         img = Image.open("target2.png")
         totens = torchvision.transforms.ToTensor()
-        tgt = totens(img).cuda()
+        tgt = totens(img)
         evo = Evolver(6, tgt)
         # for i in range(n_iter):
         #     evo.update()
