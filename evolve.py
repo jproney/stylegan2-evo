@@ -14,7 +14,7 @@ CUDA_BATCH_SIZE = 6  # Deep Learning on a laptop reacs only
 N_FLOW = 16
 
 class Evolver:
-    def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=5.0, sigma=0.0, device="cuda", trunc=.6):
+    def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=5.0, sigma=0.4, device="cuda", trunc=.6):
         with torch.no_grad():
             self.device = device
             self.npop = npop
@@ -61,17 +61,14 @@ class Evolver:
             child_genomes = torch.zeros([self.npop, LATENT_DIM], device=self.device)
             par1 = torch.multinomial(self.ranks/tot_fit, self.npop - N_FLOW, replacement=True)
             par2 = torch.multinomial(self.ranks/tot_fit, self.npop - N_FLOW, replacement=True)
-            noise1 = torch.randn(self.npop - N_FLOW, LATENT_DIM, device=self.device) * self.sigma
-            noise2 = torch.randn(self.npop - N_FLOW, LATENT_DIM, device=self.device) * self.sigma
-            noise1 *= (abs(noise1) > 2*self.sigma)
-            noise2 *= (abs(noise2) > 2*self.sigma)
-            sample = torch.randn(N_FLOW, LATENT_DIM, device=self.device)
-            child_genomes[:N_FLOW, :] = self.trunc_target + self.trunc*(self.generator.get_latent(sample) - self.trunc_target)
-            for i in range(N_FLOW, self.npop):
+            noise1 = torch.randn(self.npop, LATENT_DIM, device=self.device) * self.sigma
+            noise2 = torch.randn(self.npop, LATENT_DIM, device=self.device) * self.sigma
+            noise1 = self.trunc_target + self.trunc*(self.generator.get_latent(noise1) - self.trunc_target)
+            noise2 = self.trunc_target + self.trunc*(self.generator.get_latent(noise2) - self.trunc_target)
+            for i in range(self.npop):
                 # mutate the parent genomes
-                ind = i - N_FLOW
-                w1 = self.genomes[par1[ind], :] + noise1[ind, :]
-                w2 = self.genomes[par2[ind], :] + noise2[ind, :]
+                w1 = noise1[i, :] + .85*(self.genomes[par1[i], :] - noise1[i, :])
+                w2 = noise2[i, :] + .85*(self.genomes[par2[i], :] - noise2[i, :])
 
                 # cross over
                 xpoint = random.randint(1, LATENT_DIM)

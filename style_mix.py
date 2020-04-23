@@ -7,7 +7,7 @@ import numpy as np
 # Test out style mixing, interpolation
 
 # Load the model
-device = "cpu"
+device = "cuda"
 g_ema = Generator(1024, 512, 8, channel_multiplier=2).to(device)
 checkpoint = torch.load("stylegan2/stylegan2-ffhq-config-f.pt")
 g_ema.load_state_dict(checkpoint['g_ema'])
@@ -76,13 +76,14 @@ with torch.no_grad():
     axis[5].imshow(res6*.5 + .5)
     plt.show()
 
-    # What if we just corrupt with latent representation with some random noise?
-
-    res_noisy, _ = g_ema([w1 + latent2*.5], input_is_latent=True, truncation=1)
+    # What if we just corrupt with latent representation with some random features?
+    z = torch.randn(1, 512, device=device)
+    ns = g_ema.get_latent(z)
+    res_noisy, _ = g_ema([ns + .85*(w1 - ns)], input_is_latent=True, truncation=1)
     res_noisy = res_noisy.cpu().numpy().squeeze()
     res_noisy = np.moveaxis(res_noisy, [0, 1, 2], [2, 0, 1])
     fig, axis = plt.subplots(1, 2)
-    axis[0].imshow(res1*.5 + .5)
+    axis[0].imshow(res6*.5 + .5)
     axis[1].imshow(res_noisy*.5 + .5)
     plt.show()
 
