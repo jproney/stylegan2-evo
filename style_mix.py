@@ -79,7 +79,7 @@ with torch.no_grad():
     # What if we just corrupt with latent representation with some random features?
     z = torch.randn(1, 512, device=device)
     ns = g_ema.get_latent(z)
-    res_noisy, _ = g_ema([ns + .85*(w1 - ns)], input_is_latent=True, truncation=1)
+    res_noisy, _ = g_ema([w1 + .2*ns], input_is_latent=True, truncation=1)
     res_noisy = res_noisy.cpu().numpy().squeeze()
     res_noisy = np.moveaxis(res_noisy, [0, 1, 2], [2, 0, 1])
     fig, axis = plt.subplots(1, 2)

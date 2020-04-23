@@ -59,21 +59,22 @@ class Evolver:
             self.calc_error()
             tot_fit = torch.sum(self.ranks)
             child_genomes = torch.zeros([self.npop, LATENT_DIM], device=self.device)
-            par1 = torch.multinomial(self.ranks/tot_fit, self.npop - N_FLOW, replacement=True)
-            par2 = torch.multinomial(self.ranks/tot_fit, self.npop - N_FLOW, replacement=True)
-            noise1 = torch.randn(self.npop, LATENT_DIM, device=self.device) * self.sigma
-            noise2 = torch.randn(self.npop, LATENT_DIM, device=self.device) * self.sigma
-            noise1 = self.trunc_target + self.trunc*(self.generator.get_latent(noise1) - self.trunc_target)
-            noise2 = self.trunc_target + self.trunc*(self.generator.get_latent(noise2) - self.trunc_target)
-            for i in range(self.npop):
-                # mutate the parent genomes
-                w1 = noise1[i, :] + .85*(self.genomes[par1[i], :] - noise1[i, :])
-                w2 = noise2[i, :] + .85*(self.genomes[par2[i], :] - noise2[i, :])
+            par1 = torch.multinomial(self.ranks/tot_fit, self.npop - 1, replacement=True)
+            par2 = torch.multinomial(self.ranks/tot_fit, self.npop - 1, replacement=True)
+            noise1 = torch.randn(self.npop - 1, LATENT_DIM, device=self.device)
+            noise2 = torch.randn(self.npop - 1, LATENT_DIM, device=self.device)
+            noise1 = self.generator.get_latent(noise1)
+            noise2 = self.generator.get_latent(noise2)
+            child_genomes[0, :] = self.genomes[self.fitness[0][0], :]  # Do elitism
+            for i in range(1, self.npop):
+                # mutate the parent genomes by offsetting with a random face
+                w1 = self.genomes[par1[i-1], :] + .05*(noise1[i-1, :] - self.trunc_target)
+                w2 = self.genomes[par2[i-1], :] + .05*(noise2[i-1, :] - self.trunc_target)
 
                 # cross over
                 xpoint = random.randint(1, LATENT_DIM)
-                child_genomes[i, 0:xpoint] = w1[0:xpoint]
-                child_genomes[i, xpoint:] = w2[xpoint:]
+                child_genomes[i, 0:xpoint] = w1[0, 0:xpoint]
+                child_genomes[i, xpoint:] = w2[0, xpoint:]
             self.genomes = child_genomes
             self.generate()
 
