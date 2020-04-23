@@ -12,7 +12,6 @@ LATENT_DIM = 512
 IMG_DIM = 1024
 CUDA_BATCH_SIZE = 6  # Deep Learning on a laptop reacs only
 N_FLOW = 16
-N_ELITE = 8
 
 class Evolver:
     def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=5.0, sigma=0.0, device="cuda", trunc=.6):
@@ -53,7 +52,7 @@ class Evolver:
             self.fitness.sort(key=lambda elem: elem[1])
             for i in range(self.npop):
                 x = self.fitness[i]
-                self.ranks[x[0]] = 1/(i+1)
+                self.ranks[x[0]] = np.exp(-3.0*x[1])
 
     def update(self):
         with torch.no_grad():
