@@ -52,7 +52,7 @@ class Evolver:
             self.fitness.sort(key=lambda elem: elem[1])
             for i in range(self.npop):
                 x = self.fitness[i]
-                self.ranks[x[0]] = np.exp(-3.0*x[1])
+                self.ranks[x[0]] = self.npop - i
 
     def update(self):
         with torch.no_grad():
