@@ -14,8 +14,9 @@ CUDA_BATCH_SIZE = 6  # Deep Learning on a laptop reacs only
 N_FLOW = 16
 
 class Evolver:
-    def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=5.0, sigma=0.4, device="cuda", trunc=.6):
+    def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=5.0, sigma=0.4, device="cuda", trunc=.6, mask=None):
         with torch.no_grad():
+            self.mask = mask
             self.device = device
             self.npop = npop
             self.target = target
@@ -48,7 +49,11 @@ class Evolver:
     def calc_error(self):
         with torch.no_grad():
             mse = torch.nn.MSELoss()
-            self.fitness = [(i, mse(self.faces[i, :, :, :], self.target)) for i in range(self.npop)]
+            if self.mask is None:
+                self.fitness = [(i, mse(self.faces[i, :, :, :], self.target)) for i in range(self.npop)]
+            else:
+                x1, x2, y1, y2 = self.mask
+                self.fitness = [(i, mse(self.faces[i, :, x1:x2, y1:y2], self.target[x1:x2, y1:y2])) for i in range(self.npop)]
             self.fitness.sort(key=lambda elem: elem[1])
             for i in range(self.npop):
                 x = self.fitness[i]
