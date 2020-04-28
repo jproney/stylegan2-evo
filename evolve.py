@@ -53,7 +53,7 @@ class Evolver:
                 self.fitness = [(i, mse(self.faces[i, :, :, :], self.target)) for i in range(self.npop)]
             else:
                 x1, x2, y1, y2 = self.mask
-                self.fitness = [(i, mse(self.faces[i, :, x1:x2, y1:y2], self.target[x1:x2, y1:y2])) for i in range(self.npop)]
+                self.fitness = [(i, mse(self.faces[i, :, x1:x2, y1:y2], self.target[:, x1:x2, y1:y2])) for i in range(self.npop)]
             self.fitness.sort(key=lambda elem: elem[1])
             for i in range(self.npop):
                 x = self.fitness[i]
@@ -103,7 +103,7 @@ if __name__ == "__main__":
         img = Image.open("target2.png")
         totens = torchvision.transforms.ToTensor()
         tgt = totens(img)
-        evo = Evolver(128, tgt)
+        evo = Evolver(128, tgt, mask=(350, 820, 300, 720))
         # for i in range(n_iter):
         #     evo.update()
         #     evo.display()
