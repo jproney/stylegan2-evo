@@ -1,5 +1,6 @@
 import torch
 from stylegan2.model import Generator
+from stylegan2 import lpips
 from stylegan2 import ppl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,10 +12,11 @@ import math
 LATENT_DIM = 512
 IMG_DIM = 1024
 CUDA_BATCH_SIZE = 6  # Deep Learning on a laptop reacs only
+VGG_BATCH_SIZE = 1
 N_FLOW = 16
 
 class Evolver:
-    def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=5.0, sigma=0.4, device="cuda", trunc=.6, mask=None):
+    def __init__(self, npop, target, cpkt = "stylegan2/stylegan2-ffhq-config-f.pt", lamb=5.0, sigma=0.4, device="cuda", trunc=.6, mask=None, ploss = False):
         with torch.no_grad():
             self.mask = mask
             self.device = device
@@ -31,9 +33,15 @@ class Evolver:
             # matrix of genomes
             self.trunc = trunc
             self.genomes = self.trunc_target + self.trunc*(self.generator.get_latent(sample) - self.trunc_target)
-            self.fitness = None
+            self.fitness = []
             self.ranks = torch.zeros([npop], device="cpu")
             self.faces = torch.zeros([npop, 3, IMG_DIM, IMG_DIM], device="cpu")
+            if ploss:
+                self.percept = lpips.PerceptualLoss(
+                    model='net-lin', net='vgg', use_gpu=device.startswith('cuda')
+                )
+            else:
+                self.percept = None
             self.generate()
 
     def generate(self):
@@ -48,12 +56,23 @@ class Evolver:
 
     def calc_error(self):
         with torch.no_grad():
-            mse = torch.nn.MSELoss()
-            if self.mask is None:
-                self.fitness = [(i, mse(self.faces[i, :, :, :], self.target)) for i in range(self.npop)]
+            self.fitness = []
+            if self.percept is None:
+                mse = torch.nn.MSELoss()
+                if self.mask is None:
+                    self.fitness = [(i, mse(self.faces[i, :, :, :], self.target)) for i in range(self.npop)]
+                else:
+                    x1, x2, y1, y2 = self.mask
+                    self.fitness = [(i, mse(self.faces[i, :, x1:x2, y1:y2], self.target[:, x1:x2, y1:y2])) for i in range(self.npop)]
             else:
-                x1, x2, y1, y2 = self.mask
-                self.fitness = [(i, mse(self.faces[i, :, x1:x2, y1:y2], self.target[:, x1:x2, y1:y2])) for i in range(self.npop)]
+                i = 0
+                while i < self.npop:
+                    torch.cuda.empty_cache()
+                    scores = self.percept(self.faces[i:min(i+VGG_BATCH_SIZE, self.npop), :], self.target)
+                    self.fitness += [(i+j, scores[j]) for j in range(VGG_BATCH_SIZE)]
+                    i += VGG_BATCH_SIZE
+                    print("error calc! {}".format(i))
+
             self.fitness.sort(key=lambda elem: elem[1])
             for i in range(self.npop):
                 x = self.fitness[i]
@@ -103,7 +122,7 @@ if __name__ == "__main__":
         img = Image.open("target2.png")
         totens = torchvision.transforms.ToTensor()
         tgt = totens(img)
-        evo = Evolver(128, tgt, mask=(350, 820, 300, 720))
+        evo = Evolver(128, tgt, mask=None, ploss=True)
         # for i in range(n_iter):
         #     evo.update()
         #     evo.display()
