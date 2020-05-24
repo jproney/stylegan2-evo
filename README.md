@@ -25,8 +25,7 @@ the human brain. However, over the past few years we have seen rapid progress in
 My basic idea is to use these types of deep generative models as development functions for GAs. For instance,
 if we had a neural net that could embed and decode neural network architectures into a compact latent space, 
 we could use vectors in that latent space as genomes in a genetic algorithm, while using the neural decoder function
-as a developmental encoding. There are a lot of complicated issues with this idea, and it isn't fully developed yet. This repo is a simple
-proof-of-concept attempt to evolve faces to meet some objective using the StyleGAN2 latent representation
+as a developmental encoding. There are a lot of complicated issues with this idea, and it isn't fully developed yet. This repo is a simple proof-of-concept attempt to evolve faces to meet some objective using the StyleGAN2 latent representation
 as a genome.
 
 # The Basic Plan
@@ -45,3 +44,12 @@ which will be passed through StyleGAN's MLP and truncated to form the latent-spa
         - Cross over the two parent genomes at the crossover points
         - Select one of the recombinant chromosomes as the child genome
         
+# Initial Results
+        
+The following face evolved after 100 generations of rank selection with a population size of 128. Fitness was calculated with a VGG-16 perceputal loss. Left image is the target, right image is evolved.
+
+![Results after 100 generations](https://octodex.github.com/images/yaktocat.png)
+
+Overall I think this result is pretty good given the small population size and training time. Further advances could probably be made by using a face-specific perceptual loss like the FaceNet embedding. It would also be interesting to use the affine-transformed styles as a genome, since these have been explicitly optimized to behave as independently-acting "genes."
+
+Of course, what we've done here isn't super useful, especially since we can project images into the StyleGAN latent space using backpropagation. However, a similar technique could prove useful when training an agent on a reinforcement learning task where the objective is not differentiable.
