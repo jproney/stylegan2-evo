@@ -48,7 +48,7 @@ which will be passed through StyleGAN's MLP and truncated to form the latent-spa
         
 The following face evolved after 100 generations of rank selection with a population size of 128. Fitness was calculated with a VGG-16 perceputal loss. Left image is the target, right image is evolved.
 
-![Results after 100 generations](https://octodex.github.com/images/yaktocat.png)
+![Results after 100 generations](https://github.com/jproney/stylegan2-evo/raw/master/target_gen.png)
 
 Overall I think this result is pretty good given the small population size and training time. Further advances could probably be made by using a face-specific perceptual loss like the FaceNet embedding. It would also be interesting to use the affine-transformed styles as a genome, since these have been explicitly optimized to behave as independently-acting "genes."
 
