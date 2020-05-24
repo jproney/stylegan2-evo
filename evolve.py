@@ -112,7 +112,7 @@ class Evolver:
                 ind = self.fitness[i][0]
                 im = self.faces[ind, :, :, :].cpu().numpy().squeeze()
                 im = np.moveaxis(im, [0, 1, 2], [2, 0, 1])
-                axs[row, i - row*dim].imshow(im*.5 + .5)
+                axs[row, i - row*dim].imshow(im)
             plt.show()
 
 
